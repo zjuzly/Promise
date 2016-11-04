@@ -11,6 +11,7 @@ var Promise = (function () {
         this.successCallBacks = [];
         this.errCallBacks = [];
         this.progressCallBacks = [];
+        this.finallyCallBack = null;
         this.status = STATUS.PENDING;
         this.data = null;
         this.error = null;
@@ -52,6 +53,9 @@ var Promise = (function () {
             }, this.error);
         }
         return defer.promise;
+    };
+    Promise.prototype.finally = function (finallyCallBack) {
+        this.finallyCallBack = finallyCallBack;
     };
     Promise.prototype.execCallBack = function (callbackData, result) {
         var self = this;
@@ -101,7 +105,11 @@ var Defer = (function () {
         promise.successCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, data);
         });
-        this.promise = null;
+        if (promise.finallyCallBack) {
+            promise.finallyCallBack();
+            this.promise = null;
+        }
+        return promise;
     };
     Defer.prototype.reject = function (error) {
         var promise = this.promise;
@@ -110,7 +118,11 @@ var Defer = (function () {
         promise.errCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, error);
         });
-        this.promise = null;
+        if (promise.finallyCallBack) {
+            promise.finallyCallBack();
+            this.promise = null;
+        }
+        return promise;
     };
     Defer.prototype.notify = function (data) {
         if (!this.promise) {

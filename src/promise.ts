@@ -11,6 +11,7 @@ class Promise {
     successCallBacks:   Array<Object>;
     errCallBacks:       Array<Object>;
     progressCallBacks:  Array<Object>;
+    finallyCallBack:    Function;
 
     status:             string;
     data;
@@ -20,6 +21,7 @@ class Promise {
         this.successCallBacks = [];
         this.errCallBacks = [];
         this.progressCallBacks = [];
+        this.finallyCallBack = null;
         this.status = STATUS.PENDING;
         this.data = null;
         this.error = null;
@@ -65,6 +67,10 @@ class Promise {
         }
 
         return <any>defer.promise;
+    }
+
+    finally(finallyCallBack) {
+        this.finallyCallBack = finallyCallBack;
     }
 
     execCallBack(callbackData, result) {
@@ -114,7 +120,12 @@ export default class Defer {
         promise.successCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, data);
         });
-        this.promise = null;
+        if (promise.finallyCallBack) {
+            promise.finallyCallBack();
+            this.promise = null;
+            // return ;
+        }
+        return promise;
     }
 
     reject(error?) {
@@ -124,7 +135,12 @@ export default class Defer {
         promise.errCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, error);
         });
-        this.promise = null;        
+        if (promise.finallyCallBack) {
+            promise.finallyCallBack();
+            this.promise = null;            
+            // return ;
+        }
+        return promise;     
     }
 
     notify(data?) {

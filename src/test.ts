@@ -3,13 +3,17 @@ import Defer from './promise';
 function testPromise() {
     let deferred = new Defer();
     let counter = 0;
-    let interval = setInterval(function () {
-        if (counter++ > 15) {
-            clearInterval(interval);
-            interval = null;
+    let timer;
+    function f() {
+        if (++counter > 5) {
+            clearTimeout(timer);
+            timer = null;
+            return ;
         }
         deferred.notify('promise progressing...');
-    }, 1000);
+        timer = setTimeout(f, 1000);
+    }
+    f();
     setTimeout(function () {
         deferred.resolve('promise is resolved!');
     }, 10000);
@@ -17,34 +21,36 @@ function testPromise() {
 }
 var promise = testPromise();
 
-// promise.then(function (data) {
-//     console.log(data);
-//     return 'inside promise chain1';
-// }, function (err) {
-
-// }, function (data) {
-//     console.log(data);
-// }).then(function (data) {
-//     console.log(data);
-//     let deferred = new Defer();
-//     setTimeout(function () {
-//         deferred.resolve('then promise is resolved!');
-//     }, 3000);
-//     return deferred.promise;
-// }).then(function (data) {
-//     console.log(data);
-//     return 'inside promise chain2';
-// }, function(err) {
-//     console.log(err);
-// }).then(function (data) {
-//     console.log(data);
-//     return 'inside promise chain3';
-// });
-
-Defer.when(promise).then(function(data) {
-   console.log(data);
-}, function(err) {
+promise.then(function (data) {
+    console.log(data);
+    return 'inside promise chain1';
+}, function (err) {
 
 }, function (data) {
     console.log(data);
+}).then(function (data) {
+    console.log(data);
+    let deferred = new Defer();
+    setTimeout(function () {
+        deferred.resolve('then promise is resolved!');
+    }, 3000);
+    return deferred.promise;
+}).then(function (data) {
+    console.log(data);
+    return 'inside promise chain2';
+}, function(err) {
+    console.log(err);
+}).then(function (data) {
+    console.log(data);
+    return 'inside promise chain3';
+}).finally(function () {
+    console.log('finally');
 });
+
+// Defer.when(promise).then(function(data) {
+//    console.log(data);
+// }, function(err) {
+
+// }, function (data) {
+//     console.log(data);
+// });
