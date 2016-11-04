@@ -8,16 +8,14 @@ var STATUS = {
 };
 var Promise = (function () {
     function Promise() {
-        this.status = STATUS.PENDING;
-        this.error = null;
         this.successCallBacks = [];
         this.errCallBacks = [];
         this.progressCallBacks = [];
+        this.status = STATUS.PENDING;
+        this.data = null;
+        this.error = null;
     }
-    return Promise;
-}());
-Object.assign(Promise.prototype, {
-    then: function (successCallBack, errCallBack, progressCallBack) {
+    Promise.prototype.then = function (successCallBack, errCallBack, progressCallBack) {
         var defer = new Defer();
         this.successCallBacks.push({
             call: successCallBack,
@@ -26,6 +24,12 @@ Object.assign(Promise.prototype, {
         if (errCallBack) {
             this.errCallBacks.push({
                 call: errCallBack,
+                defer: defer
+            });
+        }
+        if (progressCallBack) {
+            this.progressCallBacks.push({
+                call: progressCallBack,
                 defer: defer
             });
         }
@@ -42,10 +46,14 @@ Object.assign(Promise.prototype, {
             }, this.error);
         }
         else if (this.status === STATUS.PROGRESS) {
+            this.execCallBack({
+                call: progressCallBack,
+                defer: defer
+            }, this.error);
         }
         return defer.promise;
-    },
-    execCallBack: function (callbackData, result) {
+    };
+    Promise.prototype.execCallBack = function (callbackData, result) {
         var self = this;
         var res = callbackData.call(result);
         if (res instanceof Promise) {
@@ -59,8 +67,9 @@ Object.assign(Promise.prototype, {
         }
         else if (self.status === STATUS.PROGRESS) {
         }
-    }
-});
+    };
+    return Promise;
+}());
 var Defer = (function () {
     function Defer() {
         this.promise = new Promise();
@@ -72,6 +81,7 @@ var Defer = (function () {
         promise.successCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, data);
         });
+        this.promise = null;
     };
     Defer.prototype.reject = function (error) {
         var promise = this.promise;
@@ -80,8 +90,18 @@ var Defer = (function () {
         promise.errCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, error);
         });
+        this.promise = null;
     };
     Defer.prototype.notify = function (data) {
+        if (!this.promise) {
+            return;
+        }
+        var promise = this.promise;
+        promise.data = data;
+        promise.status = STATUS.PROGRESS;
+        promise.progressCallBacks.forEach(function (callbackData) {
+            promise.execCallBack(callbackData, data);
+        });
     };
     Defer.prototype.bind = function (promise) {
         var that = this;

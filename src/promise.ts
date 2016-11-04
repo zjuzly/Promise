@@ -12,17 +12,20 @@ class Promise {
     errCallBacks:       Array<Object>;
     progressCallBacks:  Array<Object>;
 
-    status = STATUS.PENDING;
-    error = null;
+    status:             string;
+    data;
+    error;
 
     constructor() {
         this.successCallBacks = [];
         this.errCallBacks = [];
         this.progressCallBacks = [];
+        this.status = STATUS.PENDING;
+        this.data = null;
+        this.error = null;
     }
-}
-(<any>Object).assign(Promise.prototype, {
-    then: function (successCallBack, errCallBack?, progressCallBack?) {
+
+    then(successCallBack, errCallBack?, progressCallBack?) {
         var defer = new Defer();
 
         this.successCallBacks.push({
@@ -33,6 +36,13 @@ class Promise {
         if (errCallBack) {
             this.errCallBacks.push({
                 call: errCallBack,
+                defer: defer
+            });
+        }
+
+        if (progressCallBack) {
+            this.progressCallBacks.push({
+                call: progressCallBack,
                 defer: defer
             });
         }
@@ -48,13 +58,16 @@ class Promise {
                 defer: defer
             }, this.error);
         } else if (this.status === STATUS.PROGRESS) {
-            
+            this.execCallBack({
+                call: progressCallBack,
+                defer: defer
+            }, this.error);
         }
 
         return <any>defer.promise;
-    },
+    }
 
-    execCallBack: function (callbackData, result) {
+    execCallBack(callbackData, result) {
         var self = this;
         let res = callbackData.call(result);
         if (res instanceof Promise) {
@@ -67,7 +80,7 @@ class Promise {
             
         }
     }
-});
+}
 
 export default class Defer {
     promise: any;
@@ -82,6 +95,7 @@ export default class Defer {
         promise.successCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, data);
         });
+        this.promise = null;
     }
 
     reject(error) {
@@ -91,10 +105,19 @@ export default class Defer {
         promise.errCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, error);
         });
+        this.promise = null;        
     }
 
     notify(data) {
-
+        if (!this.promise) {
+            return ;
+        }
+        let promise = <any>this.promise;
+        promise.data = data;
+        promise.status = STATUS.PROGRESS;
+        promise.progressCallBacks.forEach(function (callbackData) {
+            promise.execCallBack(callbackData, data);
+        });
     }
 
     bind(promise) {
