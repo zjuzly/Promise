@@ -88,7 +88,26 @@ export default class Defer {
         this.promise = new Promise();
     }
 
-    resolve(data) {
+    static when(args?) {
+        if (args instanceof Promise) {
+            return args;
+        }
+        let deferred = new Defer();
+        setTimeout(function () {
+            if (args) {
+                if (args instanceof Function) {
+                    deferred.resolve(args());
+                } else {
+                    deferred.resolve(args);
+                }
+            } else {
+                deferred.resolve();
+            }
+        }, 0);
+        return deferred.promise;
+    }
+
+    resolve(data?) {
         let promise = <any>this.promise;
         promise.data = data;
         promise.status = STATUS.RESOLVE;
@@ -98,7 +117,7 @@ export default class Defer {
         this.promise = null;
     }
 
-    reject(error) {
+    reject(error?) {
         let promise = <any>this.promise;
         promise.data = error;
         promise.status = STATUS.REJECT;
@@ -108,7 +127,7 @@ export default class Defer {
         this.promise = null;        
     }
 
-    notify(data) {
+    notify(data?) {
         if (!this.promise) {
             return ;
         }

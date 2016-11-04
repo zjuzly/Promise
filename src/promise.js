@@ -74,6 +74,26 @@ var Defer = (function () {
     function Defer() {
         this.promise = new Promise();
     }
+    Defer.when = function (args) {
+        if (args instanceof Promise) {
+            return args;
+        }
+        var deferred = new Defer();
+        setTimeout(function () {
+            if (args) {
+                if (args instanceof Function) {
+                    deferred.resolve(args());
+                }
+                else {
+                    deferred.resolve(args);
+                }
+            }
+            else {
+                deferred.resolve();
+            }
+        }, 0);
+        return deferred.promise;
+    };
     Defer.prototype.resolve = function (data) {
         var promise = this.promise;
         promise.data = data;

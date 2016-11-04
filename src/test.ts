@@ -2,7 +2,12 @@ import Defer from './promise';
 
 function testPromise() {
     let deferred = new Defer();
-    setInterval(function () {
+    let counter = 0;
+    let interval = setInterval(function () {
+        if (counter++ > 15) {
+            clearInterval(interval);
+            interval = null;
+        }
         deferred.notify('promise progressing...');
     }, 1000);
     setTimeout(function () {
@@ -12,26 +17,34 @@ function testPromise() {
 }
 var promise = testPromise();
 
-promise.then(function (data) {
-    console.log(data);
-    return 'inside promise chain1';
-}, function (err) {
-    
+// promise.then(function (data) {
+//     console.log(data);
+//     return 'inside promise chain1';
+// }, function (err) {
+
+// }, function (data) {
+//     console.log(data);
+// }).then(function (data) {
+//     console.log(data);
+//     let deferred = new Defer();
+//     setTimeout(function () {
+//         deferred.resolve('then promise is resolved!');
+//     }, 3000);
+//     return deferred.promise;
+// }).then(function (data) {
+//     console.log(data);
+//     return 'inside promise chain2';
+// }, function(err) {
+//     console.log(err);
+// }).then(function (data) {
+//     console.log(data);
+//     return 'inside promise chain3';
+// });
+
+Defer.when(promise).then(function(data) {
+   console.log(data);
+}, function(err) {
+
 }, function (data) {
     console.log(data);
-}).then(function (data) {
-    console.log(data);
-    let deferred = new Defer();
-    setTimeout(function () {
-        deferred.resolve('then promise is resolved!');
-    }, 3000);
-    return deferred.promise;
-}).then(function (data) {
-    console.log(data);
-    return 'inside promise chain2';
-}, function(err) {
-    console.log(err);
-}).then(function (data) {
-    console.log(data);
-    return 'inside promise chain3';
 });
