@@ -18,10 +18,13 @@ var Promise = (function () {
     }
     Promise.prototype.then = function (successCallBack, errCallBack, progressCallBack) {
         var defer = new Defer();
-        this.successCallBacks.push({
-            call: successCallBack,
-            defer: defer
-        });
+        this.__defer__ = defer;
+        if (successCallBack) {
+            this.successCallBacks.push({
+                call: successCallBack,
+                defer: defer
+            });
+        }
         if (errCallBack) {
             this.errCallBacks.push({
                 call: errCallBack,
@@ -54,11 +57,20 @@ var Promise = (function () {
         }
         return defer.promise;
     };
+    Promise.prototype.catch = function (errCallBack) {
+        return this.then(null, errCallBack);
+    };
     Promise.prototype.finally = function (finallyCallBack) {
         this.finallyCallBack = finallyCallBack;
     };
     Promise.prototype.execCallBack = function (callbackData, result) {
         var self = this;
+        if (!callbackData) {
+            if (self.__defer__) {
+                self.__defer__.resolve(result);
+            }
+            return;
+        }
         var res = callbackData.call(result);
         if (res instanceof Promise) {
             callbackData.defer.bind(res);
@@ -67,7 +79,7 @@ var Promise = (function () {
             callbackData.defer.resolve(res);
         }
         else if (self.status === STATUS.REJECT) {
-            callbackData.defer.reject(res);
+            callbackData.defer.reject(result, true);
         }
         else if (self.status === STATUS.PROGRESS) {
         }
@@ -105,22 +117,32 @@ var Defer = (function () {
         promise.successCallBacks.forEach(function (callbackData) {
             promise.execCallBack(callbackData, data);
         });
+        if (promise.successCallBacks.length == 0) {
+            promise.execCallBack(null, data);
+        }
         if (promise.finallyCallBack) {
-            promise.finallyCallBack();
+            promise.finallyCallBack(data);
             this.promise = null;
         }
         return promise;
     };
-    Defer.prototype.reject = function (error) {
+    Defer.prototype.reject = function (error, gotoFinally) {
         var promise = this.promise;
-        promise.data = error;
+        promise.error = error;
         promise.status = STATUS.REJECT;
-        promise.errCallBacks.forEach(function (callbackData) {
-            promise.execCallBack(callbackData, error);
-        });
         if (promise.finallyCallBack) {
-            promise.finallyCallBack();
+            promise.finallyCallBack(error);
             this.promise = null;
+        }
+        else {
+            if (!gotoFinally) {
+                promise.errCallBacks.forEach(function (callbackData) {
+                    promise.execCallBack(callbackData, error);
+                });
+            }
+            else if (promise.__defer__) {
+                promise.__defer__.reject(error, gotoFinally);
+            }
         }
         return promise;
     };

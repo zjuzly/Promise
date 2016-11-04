@@ -32,7 +32,15 @@ promise.then(function (data) {
     console.log(data);
     let deferred = new Defer();
     setTimeout(function () {
-        deferred.resolve('then promise is resolved!');
+        // deferred.resolve('then promise is resolved!');
+        deferred.reject('then promise is rejected!');        
+    }, 3000);
+    return deferred.promise;
+}).catch(function (err) {
+    let deferred = new Defer();
+    console.log(err + ' in catch');
+    setTimeout(function () {
+        deferred.resolve('catch promise is resolved!');        
     }, 3000);
     return deferred.promise;
 }).then(function (data) {
@@ -43,8 +51,10 @@ promise.then(function (data) {
 }).then(function (data) {
     console.log(data);
     return 'inside promise chain3';
-}).finally(function () {
-    console.log('finally');
+}).catch(function (err) {
+    console.log(err);
+}).finally(function (data) {
+    console.log('finally ' + data);
 });
 
 // Defer.when(promise).then(function(data) {
