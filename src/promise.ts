@@ -126,6 +126,27 @@ export default class Defer {
         return deferred.promise;
     }
 
+    static all(promises) {
+        let deferred = new Defer();
+        let counter = 0;
+        let results = Array.isArray(promises) ? [] : {};
+        promises.forEach(function (promise, key) {
+            counter++;
+            Defer.when(promise).then(function (value) {
+                results[key] = value;
+                if (!(--counter)) {
+                    deferred.resolve(results);
+                }
+            }, function (e) {
+                promise.reject(e);
+            });
+        });
+        if (counter === 0) {
+            deferred.resolve(results);
+        }
+        return deferred.promise;
+    }
+
     resolve(data?) {
         let promise = <any>this.promise;
         promise.data = data;
